@@ -1,0 +1,221 @@
+<apex:page controller="cms.CreateContentController" extensions="StockFeedYahoo" showHeader="false"
+    sidebar="false" cache="false" title="Orchestra CMS" standardStylesheets="false">
+    <script>
+$(document).ready(init);
+
+function init() {
+    var isEnabled = ocmsEditorAPI.getEnabled();
+    var symbols = {!symbolsJson};
+    var $symbolsContainer = $('#symbolsContainer');
+
+    ce.content_editor('registerSaveFunction', getAttributes);
+
+    $('#maxFavoriteSymbols').val({!maxFavoriteSymbols});
+    $('#selectStocksMessage').val('{!JSENCODE(selectStocksMessage)}');
+    $('#tooManyStocksMessage').val('{!JSENCODE(tooManyStocksMessage)}');
+
+    symbols.forEach(function(symbol) {
+        $symbolsContainer.append(createSymbolRow(symbol));
+    });
+
+    if(isEnabled) {
+        $('input, textarea').removeAttr('disabled');
+
+        // Create the 'Add Symbol' button
+        $('#stocksTable thead tr').append(
+            '<th><a href="#" id="addSymbol"><div class="ocms-icon-20 ocms-icon-20-NewMenuItem"></div></a></th>'
+        );
+
+        // Create a blank symbol row if no symbols were loaded
+        if(symbols.length === 0) {
+            $symbolsContainer.append(createSymbolRow());
+        }
+
+        // Click handler to add a new symbol row
+        $('#addSymbol').click(function(evt) {
+            evt.preventDefault();
+            $symbolsContainer.append(createSymbolRow());
+        });
+
+        // Click handler to remove a symbol row
+        $symbolsContainer.on('click', '.removeSymbol', function(evt) {
+            evt.preventDefault();
+            $(this).closest('tr').remove();
+        });
+    }
+}
+
+function getAttributes() {
+    var attributes = [];
+
+    var $symbolRows = $('#symbolsContainer tr');
+
+    var symbolCount = 0; // We only want to count rows with a symbol filled in so don't use $symbolRows.length
+    $symbolRows.each(function(i) {
+        var $row = $(this);
+
+        var isDefault = $('.isDefault', $row).is(':checked');
+        var symbol = $('.symbol', $row).val().trim();
+        var label = $('.label', $row).val().trim();
+
+        // Only store attributes if the author filled in a symbol
+        if(symbol) {
+            symbolCount ++;
+
+            attributes.push({
+                name: 'symbolIsDefault' + i,
+                value: isDefault.toString(),
+                type: 'Boolean',
+                simple: true,
+                lang: ''
+            });
+
+            attributes.push({
+                name: 'symbol' + i,
+                value: symbol,
+                type: 'Text',
+                simple: true,
+                lang: ''
+            });
+
+            attributes.push({
+                name: 'symbolLabel' + i,
+                value: label,
+                type: 'Text',
+                simple: true,
+            });
+        }
+    });
+
+    attributes.push({
+        name: 'symbolCount',
+        value: symbolCount,
+        type: 'Integer',
+        simple: true
+    });
+
+    attributes.push({
+        name: 'maxFavoriteSymbols',
+        value: $('#maxFavoriteSymbols').val(),
+        type: 'Integer',
+        simple: true,
+        lang: ''
+    });
+
+    attributes.push({
+        name: 'selectStocksMessage',
+        value: $('#selectStocksMessage').val(),
+        type: 'Text'
+    });
+
+    attributes.push({
+        name: 'tooManyStocksMessage',
+        value: $('#tooManyStocksMessage').val(),
+        type: 'Text'
+    });
+
+    return attributes;
+}
+
+function createSymbolRow(symbol) {
+    symbol = symbol || {
+        isDefault: false,
+        symbol: '',
+        label: ''
+    };
+
+    var isEnabled = ocmsEditorAPI.getEnabled();
+    var $row = $('<tr />');
+    var checkedAttribute = symbol.isDefault ? ' checked' : '';
+    var disabledAttribute = !isEnabled ? ' disabled' : '';
+
+    $row.append(
+        '<td><input class="isDefault" type="checkbox"' + checkedAttribute + disabledAttribute + ' /></td>',
+        '<td><input class="symbol" type="text"' + disabledAttribute + ' /></td>',
+        '<td><input class="label" type="text"' + disabledAttribute + ' /></td>'
+    );
+
+    if (isEnabled) {
+        $row.append('<td><a href="#" class="removeSymbol"><div class="ocms-icon-20 ocms-icon-20-Delete"></div></a></td>');
+    } else {
+        $row.append('<td />');
+    }
+
+    $('.symbol', $row).val(symbol.symbol);
+    $('.label', $row).val(symbol.label);
+
+    return $row;
+}
+    </script>
+    <form>
+        <table class="ocmsContentEditor ocmsContentEditorNested">
+            <tr class="ocmsEditorSubtitle">
+                <td>Common Settings</td>
+            </tr>
+            <tr>
+                <td>
+                    <p>
+                        Add the appropriate Yahoo Finance API symbol and description for all the symbols
+                        that users will be able to choose from as their favourites.
+                    </p>
+                    <ul>
+                        <li>
+                            <p>
+                                The “Default?” symbols will be shown for users who have not
+                                personalized their symbol preferences.
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                Yahoo stock index symbols are defined at
+                                <a href="https://finance.yahoo.com/intlindices" target="_blank">Yahoo Stock Indices</a>
+                                (be sure to check all the tabs!).
+                                Dow Jones index information is <em>not</em> available through the Yahoo Finance web API.
+                            </p>
+                        </li>
+                    </ul>
+                </td>
+            </tr>
+            <tr class="ocmsTable">
+                <td>
+                    <table id="stocksTable">
+                        <thead>
+                            <tr>
+                                <th>Default?</th>
+                                <th>Symbol</th>
+                                <th>Label</th>
+                            </tr>
+                        </thead>
+                        <tbody id="symbolsContainer"></tbody>
+                    </table>
+                </td>
+            </tr>
+            <tr class="ocmsEditorSubtitle">
+                <td>User Preferences Settings</td>
+            </tr>
+            <tr>
+                <td>
+                    <label for="maxFavoriteSymbols">Maxiumum number of favourite symbols:</label>
+                    <input type="number" class="ocmsTextInputSml" id="maxFavoriteSymbols"
+                            length="2" min="1" max="5" disabled="disabled" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label for="selectStocksMessage" class="ocmsLabel">
+                        Prompt displayed telling a user to select their favourite symbols:
+                    </label>
+                    <input type="text" class="ocmsTextInputLrg" id="selectStocksMessage" disabled="disabled" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label for="tooManyStocksMessage" class="ocmsLabel">
+                        Message displayed when a user selects too many symbols:
+                    </label>
+                    <input type="text" class="ocmsTextInputLrg" id="tooManyStocksMessage" disabled="disabled" />
+                </td>
+            </tr>
+        </table>
+    </form>
+</apex:page>
