@@ -40,9 +40,15 @@ This content type requires a minimum of OrchestraCMS package 7.184 (Winter 2016,
     4. StockFeedYahooService.cls
     5. StockFeedYahooService_Test.cls
     6. StockFeedYahooUserPreferences.cls
-2. Zip the contents of resource-bundles/StockFeedYahoo.resource and deploy the compressed file as StockFeedYahoo.resource
+2. Deploy the following static resources
+    1. StockFeedYahoo.resource
 3. Deploy the following Visualforce pages to the target Salesforce organization
     1. StockFeedYahoo_Edit.page
+
+<a href="https://githubsfdeploy.herokuapp.com">
+  <img alt="Deploy to Salesforce"
+       src="https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/deploy.png">
+</a>
 
 <a name="configuration"></a>
 ### Configuration
